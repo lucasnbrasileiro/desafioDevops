@@ -1,12 +1,12 @@
 name: "Terraform"
 
 on:
- push:
-   branches: ["main"]
-   paths: ["src/**"]
- workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths: ["src/**"]
+  workflow_dispatch:
 
- jobs:
+jobs:
    terraform:
      name: "Terraform Apply"
      runs-on: "ubuntu-latest"
