@@ -55,11 +55,57 @@ resource "aws_instance" "server01" {
   instance_type = "t2.micro"
   user_data = <<-EOF
               #!/bin/bash
-              yum update -y
-              yum install -y docker
-              systemctl start docker
-              systemctl enable docker
-              docker run -d -p 80:80 --name app lucasbrasileiro/app:latest
+
+              sudo yum update -y
+              sudo yum install -y docker
+              sudo systemctl start docker
+              sudo systemctl enable docker
+
+              cat /home/ec2-user/app.py
+
+              # arquivo da aplicacao
+
+              from flask import Flask
+
+              app = Flask(__name__)
+
+              @app.route('/')
+              def hello():
+                  return "Hello, DevOps!"
+
+              if __name__ == '__main__':
+                  app.run(host='0.0.0.0', port=80)
+
+              # arquivo requiremnets.txt
+              
+              cat /home/ec2-user/requirements.txt/
+              Flask==2.3.2
+
+              # arquivo Dockerfile
+
+              cat /home/ec2-user/Dockerfile
+
+              # imagem base
+              FROM python:3.9-slim
+
+              # o diretório de trabalho no container
+              WORKDIR /app
+
+              # Copia os arquivos necessários para o container
+              COPY app.py requirements.txt ./
+
+              # Instalacao das dependências
+              RUN pip install --no-cache-dir -r requirements.txt
+
+              # Expõe a porta 80
+              EXPOSE 80
+
+              # inicia a aplicação
+              CMD ["python", "app.py"]
+
+              sudo docker build -t hello-devops /home/ec2-user
+              sudo docker run -d -p 80:80 hello-devops
+
               EOF
 
   vpc_security_group_ids = [aws_security_group.sg01.id]
@@ -72,11 +118,57 @@ resource "aws_instance" "server02" {
   instance_type = "t2.micro"
   user_data = <<-EOF
               #!/bin/bash
-              yum update -y
-              yum install -y docker
-              systemctl start docker
-              systemctl enable docker
-              docker run -d -p 80:80 --name app lucasbrasileiro/app:latest
+
+              sudo yum update -y
+              sudo yum install -y docker
+              sudo systemctl start docker
+              sudo systemctl enable docker
+
+              cat /home/ec2-user/app.py
+
+              # arquivo da aplicacao
+
+              from flask import Flask
+
+              app = Flask(__name__)
+
+              @app.route('/')
+              def hello():
+                  return "Hello, DevOps!"
+
+              if __name__ == '__main__':
+                  app.run(host='0.0.0.0', port=80)
+
+              # arquivo requiremnets.txt
+              
+              cat /home/ec2-user/requirements.txt/
+              Flask==2.3.2
+
+              # arquivo Dockerfile
+
+              cat /home/ec2-user/Dockerfile
+
+              # imagem base
+              FROM python:3.9-slim
+
+              # o diretório de trabalho no container
+              WORKDIR /app
+
+              # Copia os arquivos necessários para o container
+              COPY app.py requirements.txt ./
+
+              # Instalacao das dependências
+              RUN pip install --no-cache-dir -r requirements.txt
+
+              # Expõe a porta 80
+              EXPOSE 80
+
+              # inicia a aplicação
+              CMD ["python", "app.py"]
+
+              sudo docker build -t hello-devops /home/ec2-user
+              sudo docker run -d -p 80:80 hello-devops
+
               EOF
 
   vpc_security_group_ids = [aws_security_group.sg01.id]
