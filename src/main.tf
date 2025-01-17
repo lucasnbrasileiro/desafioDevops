@@ -31,9 +31,15 @@ module "vpc" {
   }
 }
 
+output "vpc_id" {
+  value = module.vpc.vpc_id
+  }
+
 resource "aws_security_group" "sg01" {
+
   name        = "web_sg"
-  description = " Trafego SSH e HTTP"
+  description = "Trafego SSH e HTTP"
+  vpc_id = module.vpc.vpc_id
 
   ingress {
     from_port   = 22
@@ -51,7 +57,7 @@ resource "aws_security_group" "sg01" {
 }
 
 resource "aws_instance" "server01" {
-  ami ="ami-0c55b159cbfafe1f0" # Amazon Linux 2 AMI
+  ami ="ami-0df8c184d5f6ae949" # Amazon Linux AMI 2023
   instance_type = "t2.micro"
   user_data = <<-EOF
               #!/bin/bash
@@ -114,7 +120,7 @@ resource "aws_instance" "server01" {
 }
 
 resource "aws_instance" "server02" {
-  ami ="ami-0c55b159cbfafe1f0" # Amazon Linux 2 AMI
+  ami ="ami-0df8c184d5f6ae949" # Amazon Linux AMI 2023
   instance_type = "t2.micro"
   user_data = <<-EOF
               #!/bin/bash
