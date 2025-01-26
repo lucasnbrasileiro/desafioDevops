@@ -85,7 +85,7 @@ resource "aws_instance" "server01" {
 
               @app.route("/")
               def hello():
-                  return "Hello, DevOps!"
+                  return "Hello, DevOps! 1"
 
               if __name__ == "__main__":
                   app.run(host="0.0.0.0", port=80)' > app.py
@@ -132,7 +132,7 @@ resource "aws_instance" "server02" {
 
               @app.route("/")
               def hello():
-                  return "Hello, DevOps!"
+                  return "Hello, DevOps! 2"
 
               if __name__ == "__main__":
                   app.run(host="0.0.0.0", port=80)' > app.py
