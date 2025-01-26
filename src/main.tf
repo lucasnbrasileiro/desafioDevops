@@ -22,8 +22,8 @@ module "vpc" {
   private_subnets = ["10.0.1.0/24", "10.0.2.0/24"]
   public_subnets  = ["10.0.101.0/24", "10.0.102.0/24"]
 
-  enable_nat_gateway = true
-  enable_vpn_gateway = true
+  enable_nat_gateway = false
+  enable_vpn_gateway = false
 
   tags = {
     Terraform = "true"
@@ -54,132 +54,127 @@ resource "aws_security_group" "sg01" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 resource "aws_instance" "server01" {
-  ami ="ami-0df8c184d5f6ae949" # Amazon Linux AMI 2023
+  ami ="ami-04b4f1a9cf54c11d0" # Ubuntu 24.04
   instance_type = "t2.micro"
   user_data = <<-EOF
               #!/bin/bash
+              sudo apt-get update -y
+              sudo apt-get install -y docker.io
 
-              sudo yum update -y
-              sudo yum install -y docker
               sudo systemctl start docker
               sudo systemctl enable docker
 
-              cat /home/ec2-user/app.py
+              sudo usermod -aG docker ubuntu
 
-              # arquivo da aplicacao
+              sudo mkdir /app && cd /app
 
-              from flask import Flask
+              # Criar arquivos da aplicação
+              sudo echo 'from flask import Flask
 
               app = Flask(__name__)
 
-              @app.route('/')
+              @app.route("/")
               def hello():
                   return "Hello, DevOps!"
 
-              if __name__ == '__main__':
-                  app.run(host='0.0.0.0', port=80)
+              if __name__ == "__main__":
+                  app.run(host="0.0.0.0", port=80)' > app.py
 
-              # arquivo requiremnets.txt
-              
-              cat /home/ec2-user/requirements.txt/
-              Flask==2.3.2
+              sudo echo 'Flask==2.3.2' > requirements.txt
 
-              # arquivo Dockerfile
-
-              cat /home/ec2-user/Dockerfile
-
-              # imagem base
-              FROM python:3.9-slim
-
-              # o diretório de trabalho no container
+              sudo echo 'FROM python:3.9-slim
               WORKDIR /app
-
-              # Copia os arquivos necessários para o container
               COPY app.py requirements.txt ./
-
-              # Instalacao das dependências
               RUN pip install --no-cache-dir -r requirements.txt
-
-              # Expõe a porta 80
               EXPOSE 80
+              CMD ["python", "app.py"]' > Dockerfile
 
-              # inicia a aplicação
-              CMD ["python", "app.py"]
-
-              sudo docker build -t hello-devops /home/ec2-user
+              # Construir e executar o container
+              sudo docker build -t hello-devops .
               sudo docker run -d -p 80:80 hello-devops
-
               EOF
-
+      
   vpc_security_group_ids = [aws_security_group.sg01.id]
   subnet_id = module.vpc.public_subnets[0]
+  associate_public_ip_address = true
   
 }
 
 resource "aws_instance" "server02" {
-  ami ="ami-0df8c184d5f6ae949" # Amazon Linux AMI 2023
+  ami ="ami-04b4f1a9cf54c11d0" # Ubuntu 24.04
   instance_type = "t2.micro"
   user_data = <<-EOF
               #!/bin/bash
+              sudo apt-get update -y
+              sudo apt-get install -y docker.io
 
-              sudo yum update -y
-              sudo yum install -y docker
               sudo systemctl start docker
               sudo systemctl enable docker
 
-              cat /home/ec2-user/app.py
+              sudo usermod -aG docker ubuntu
 
-              # arquivo da aplicacao
+              sudo mkdir /app && cd /app
 
-              from flask import Flask
+              # Criar arquivos da aplicação
+              sudo echo 'from flask import Flask
 
               app = Flask(__name__)
 
-              @app.route('/')
+              @app.route("/")
               def hello():
                   return "Hello, DevOps!"
 
-              if __name__ == '__main__':
-                  app.run(host='0.0.0.0', port=80)
+              if __name__ == "__main__":
+                  app.run(host="0.0.0.0", port=80)' > app.py
 
-              # arquivo requiremnets.txt
-              
-              cat /home/ec2-user/requirements.txt/
-              Flask==2.3.2
+              sudo echo 'Flask==2.3.2' > requirements.txt
 
-              # arquivo Dockerfile
-
-              cat /home/ec2-user/Dockerfile
-
-              # imagem base
-              FROM python:3.9-slim
-
-              # o diretório de trabalho no container
+              sudo echo 'FROM python:3.9-slim
               WORKDIR /app
-
-              # Copia os arquivos necessários para o container
               COPY app.py requirements.txt ./
-
-              # Instalacao das dependências
               RUN pip install --no-cache-dir -r requirements.txt
-
-              # Expõe a porta 80
               EXPOSE 80
+              CMD ["python", "app.py"]' > Dockerfile
 
-              # inicia a aplicação
-              CMD ["python", "app.py"]
-
-              sudo docker build -t hello-devops /home/ec2-user
+              # Construir e executar o container
+              sudo docker build -t hello-devops .
               sudo docker run -d -p 80:80 hello-devops
-
               EOF
-
+      
   vpc_security_group_ids = [aws_security_group.sg01.id]
   subnet_id = module.vpc.public_subnets[1]
+  associate_public_ip_address = true
   
+}
+
+resource "aws_lb_target_group" "tg01" {
+  name = "tg01"
+  port = 80
+  protocol = "HTTP"
+  target_type = "instance"
+  vpc_id = module.vpc.vpc_id
+
+  health_check {
+  enabled = true
+  interval = 10  
+  path = "/"
+  port = "traffic-port"
+  protocol = "HTTP"
+  timeout = 5
+  healthy_threshold = 2
+  unhealthy_threshold = 2
+
+ }
 }
 
 resource "aws_lb" "lb01" {
@@ -188,29 +183,7 @@ resource "aws_lb" "lb01" {
   load_balancer_type = "application"
   security_groups = [aws_security_group.sg01.id]
   subnets = [module.vpc.public_subnets[0], module.vpc.public_subnets[1]]
-}
-
-resource "aws_lb_target_group" "tg01" {
-  name = "tg01"
-  port = 80
-  protocol = "HTTP"
-  vpc_id = module.vpc.vpc_id
-  health_check {
-  path = "/"
-  port = "traffic-port"
- }
-}
-
-resource "aws_lb_target_group_attachment" "tga01"{
-  target_group_arn = aws_lb_target_group.tg01.arn
-  target_id = aws_instance.server01.id
-  port = 80
-}
-
-resource "aws_lb_target_group_attachment" "tga02" {
-  target_group_arn = aws_lb_target_group.tg01.arn
-  target_id = aws_instance.server02.id
-  port = 80
+  ip_address_type = "ipv4"
 }
 
 resource "aws_lb_listener" "lbl01" {
@@ -218,7 +191,17 @@ resource "aws_lb_listener" "lbl01" {
   port = 80
   protocol = "HTTP"
   default_action {
-  target_group_arn = aws_lb_target_group.tg01.arn
-  type = "forward"
+    type = "forward"
+    target_group_arn = aws_lb_target_group.tg01.arn
  }
+}
+
+resource "aws_lb_target_group_attachment" "tga01"{
+  target_group_arn = aws_lb_target_group.tg01.arn
+  target_id = aws_instance.server01.id
+}
+
+resource "aws_lb_target_group_attachment" "tga02"{
+  target_group_arn = aws_lb_target_group.tg01.arn
+  target_id = aws_instance.server02.id
 }
